@@ -1,0 +1,21 @@
+[submodule "extern/glfw"]
+	path = extern/glfw
+	url = https://github.com/glfw/glfw.git
+[submodule "extern/glm"]
+	path = extern/glm
+	url = https://github.com/g-truc/glm.git
+[submodule "extern/Catch2"]
+	path = extern/Catch2
+	url = https://github.com/catchorg/Catch2.git
+[submodule "extern/imgui"]
+	path = extern/imgui
+	url = https://github.com/ocornut/imgui.git
+[submodule "extern/portable-file-dialogs"]
+	path = extern/portable-file-dialogs
+	url = https://github.com/samhocevar/portable-file-dialogs.git
+[submodule "extern/gl3w"]
+	path = extern/gl3w
+	url = https://github.com/skaslev/gl3w.git
+[submodule "extern/IconFontCppHeaders"]
+	path = extern/IconFontCppHeaders
+	url = https://github.com/juliettef/IconFontCppHeaders.git

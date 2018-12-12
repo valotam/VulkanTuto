@@ -26,3 +26,13 @@
 *.exe
 *.out
 *.app
+
+# Build directories
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+
+# Visual studio configuration
+.vs/
+*.user

@@ -280,6 +280,18 @@ void BaseApp::MainLoop() {
     int display_w, display_h;
     glfwMakeContextCurrent(window_);
     glfwGetFramebufferSize(window_, &display_w, &display_h);
+    switch (draw_mode)
+    {
+    case vktuto::opengl3::BaseApp::GLDrawMode::Point:
+      glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
+      break;
+    case vktuto::opengl3::BaseApp::GLDrawMode::Line:
+      glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+      break;
+    case vktuto::opengl3::BaseApp::GLDrawMode::Fill: default:
+      glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+      break;
+    }
     glViewport(0, 0, display_w, display_h);
     glClearColor(
       clear_color_.x,
@@ -355,7 +367,7 @@ void BaseApp::BindBuffers() const {
   glBufferData(GL_ARRAY_BUFFER, colors.size() * sizeof(glm::vec3), colors.data(), GL_STATIC_DRAW);
 
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo_);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLbyte), indices.data(), GL_STATIC_DRAW);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), indices.data(), GL_STATIC_DRAW);
   glBindVertexArray(0);
 }
 
@@ -526,7 +538,7 @@ void BaseApp::CustomGLDraw() {
 
   glVertexAttribDivisor(0, 0);
   glVertexAttribDivisor(1, 0);
-  glDrawElements(GL_TRIANGLE_STRIP, indices.size(), GL_UNSIGNED_BYTE, NULL);
+  glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, NULL);
   glDisableVertexAttribArray(0);
   glDisableVertexAttribArray(1);
   glBindVertexArray(0);
@@ -562,6 +574,21 @@ void BaseApp::ChangeOutData() {
   };
 
   BindBuffers();
+}
+
+void BaseApp::ChangeDrawMode(int mode) {
+  switch (mode)
+  {
+  case 0:
+    draw_mode = GLDrawMode::Point;
+    break;
+  case 1:
+    draw_mode = GLDrawMode::Line;
+    break;
+  case 2: default:
+    draw_mode = GLDrawMode::Fill;
+    break;
+  }
 }
 
 } // inline namespace opengl3

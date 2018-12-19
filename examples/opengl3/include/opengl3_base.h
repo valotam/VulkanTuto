@@ -92,7 +92,7 @@ class BaseApp
 
   std::vector<glm::vec3> & GetVertices() { return vertices; }
   std::vector<glm::vec3> & GetColors() { return colors; }
-  std::vector<GLubyte>   & GetIndices() { return indices; }
+  std::vector<GLuint>   & GetIndices() { return indices; }
 
   const int GetFBO() const { return fbo_; }
   const int GetRBODepth() const { return rbo_depth_; }
@@ -110,6 +110,8 @@ class BaseApp
   bool & IsFullScreen() { return full_screen_; }
 
   virtual void ChangeOutData();
+
+  void ChangeDrawMode(int mode);
 
  private:
   const struct GLVersion { int major, minor; } gl_version_ /*= { 3, 0 }*/;
@@ -130,6 +132,9 @@ class BaseApp
     {VkTutoFontFlag::Bold,      {VKTUTO_FONT_BOLD_PATH,       nullptr, 22.f}},
     {VkTutoFontFlag::Thin,      {VKTUTO_FONT_THIN_PATH,       nullptr, 18.f}}
   };
+  enum class GLDrawMode { Point = GL_POINT,
+                          Line = GL_LINE,
+                          Fill = GL_FILL } draw_mode = GLDrawMode::Fill;
 
   GLuint program_;
   GLuint vao_;
@@ -138,7 +143,7 @@ class BaseApp
   GLuint ibo_;
 
   std::vector<glm::vec3> vertices, colors;
-  std::vector<GLubyte> indices;
+  std::vector<GLuint> indices;
 
   GLuint fbo_;
   GLuint rbo_depth_;

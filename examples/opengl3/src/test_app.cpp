@@ -1,4 +1,5 @@
 #include <iostream>
+#include <random>
 
 #include "test_app.h"
 
@@ -27,21 +28,42 @@ void TestApp::Cleanup() {
 }
 
 void TestApp::ChangeOutData() {
-  GetVertices() = {
-    glm::vec3(-1.0f, -1.0f,  1.0f),
-    glm::vec3( 1.0f, -1.0f,  1.0f),
-    glm::vec3(-1.0f,  1.0f,  1.0f),
-  };
+  int row_size = num_para_u - 1, col_size = num_para_v - 1;
+  if (!nurbs::internal::SurfaceIsValid(
+          srf.degree_u, srf.degree_v,
+          srf.knots_u, srf.knots_v,
+          srf.control_points, srf.weights) || 
+      row_size <= 0 || col_size <= 0) {
+    return;
+  }
 
-  GetColors() = {
-    glm::vec3(0.0f,  0.0f,  0.0f),
-    glm::vec3(1.0f,  0.0f,  0.0f),
-    glm::vec3(1.0f,  1.0f,  0.0f),
-  };
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_real_distribution<float> dis(0, 1);
 
-  GetIndices() = {
-      0, 1, 2
-  };
+  auto & vertices = GetVertices();
+  vertices = surface;
+
+  auto & colors = GetColors();
+  colors.resize(surface.size());
+  for (auto & color : colors) {
+    color = glm::vec3(dis(gen), dis(gen), dis(gen));
+  }
+
+  auto & indices = GetIndices();
+  indices.resize(6 * row_size * col_size);
+  std::vector<GLuint> mesh(6);
+  for (size_t u_idx = 0; u_idx < num_para_u; u_idx++) {
+    if (u_idx == row_size) continue;
+    for (size_t v_idx = 0; v_idx < num_para_v; v_idx++) {
+    if (v_idx == col_size) continue;
+      unsigned int idx = num_para_v * u_idx + v_idx;
+      unsigned int loc = col_size * (u_idx % row_size) + (v_idx % col_size);
+      mesh = { idx, idx + 1, idx + num_para_v,
+               idx + 1 , idx + 1 + num_para_v, idx + num_para_v };
+      std::copy(mesh.begin(), mesh.end(), indices.begin() + 6 * loc);
+    }
+  }
 
   BindBuffers();
 }
@@ -128,6 +150,165 @@ void TestApp::SplitView() {
 }
 
 void TestApp::ControlsColumn() {
+  static unsigned int counter_u = 2;
+  static unsigned int counter_v = 2;
+  static unsigned int num_con_point_u = 5;
+  static unsigned int num_con_point_v = 5;
+
+  // Degree and Control points
+  {
+    ImGui::AlignTextToFramePadding();
+    ImGui::Text("Degree of direction U:");
+    ImGui::SameLine();
+
+    float spacing = ImGui::GetStyle().ItemInnerSpacing.x;
+    ImGui::PushButtonRepeat(true);
+    if (ImGui::ArrowButton("##left_u", ImGuiDir_Left)) {
+      if (counter_u != 1) --counter_u;
+    }
+    ImGui::SameLine(0.0f, spacing);
+    if (ImGui::ArrowButton("##right_u", ImGuiDir_Right)) {
+      if (counter_u != 7) ++counter_u;
+    }
+    ImGui::PopButtonRepeat();
+    ImGui::SameLine();
+    ImGui::Text("%d", counter_u);
+
+    ImGui::Text("Degree of direction V:");
+    ImGui::SameLine();
+
+    ImGui::PushButtonRepeat(true);
+    if (ImGui::ArrowButton("##left_v", ImGuiDir_Left)) {
+      if (counter_v != 1) --counter_v;
+    }
+    ImGui::SameLine(0.0f, spacing);
+    if (ImGui::ArrowButton("##right_v", ImGuiDir_Right)) {
+      if (counter_v != 7) ++counter_v;
+    }
+    ImGui::PopButtonRepeat();
+    ImGui::SameLine();
+    ImGui::Text("%d", counter_v);
+
+    ImGui::Text("The # of control points for U:");
+    ImGui::SameLine();
+
+    ImGui::PushButtonRepeat(true);
+    if (ImGui::ArrowButton("##left_cp_u", ImGuiDir_Left)) {
+      if (num_con_point_u != 2) --num_con_point_u;
+    }
+    ImGui::SameLine(0.0f, spacing);
+    if (ImGui::ArrowButton("##right_cp_u", ImGuiDir_Right)) {
+      if (num_con_point_u != 10) ++num_con_point_u;
+    }
+    ImGui::PopButtonRepeat();
+    ImGui::SameLine();
+    ImGui::Text("%d", num_con_point_u);
+
+    ImGui::Text("The # of control points for V:");
+    ImGui::SameLine();
+
+    ImGui::PushButtonRepeat(true);
+    if (ImGui::ArrowButton("##left_cp_v", ImGuiDir_Left)) {
+      if (num_con_point_v != 2) --num_con_point_v;
+    }
+    ImGui::SameLine(0.0f, spacing);
+    if (ImGui::ArrowButton("##right_cp_v", ImGuiDir_Right)) {
+      if (num_con_point_v != 10) ++num_con_point_v;
+    }
+    ImGui::PopButtonRepeat();
+    ImGui::SameLine();
+    ImGui::Text("%d", num_con_point_v);
+  }
+
+  // Make surface
+  if (ImGui::Button("Make surface"))
+  {
+    srf.degree_u = 3;
+    srf.degree_v = 3;
+    srf.knots_u = { 0, 0, 0, 0, 0.5, 1, 1, 1, 1 };
+    srf.knots_v = { 0, 0, 0, 0, 0.5, 1, 1, 1, 1 };
+    srf.control_points = { 5, 5,
+        { glm::vec3(0.5, 0.0, 0.0), glm::vec3(1.0, 0.0, 0.0), glm::vec3(1.3, 0.0, 0.0), glm::vec3(2.0, 0.0, 0.0), glm::vec3(2.8, 0.0, 0.0),
+          glm::vec3(0.4, 1.0, 0.0), glm::vec3(1.0, 1.0, 0.0), glm::vec3(2.3, 1.0, 0.2), glm::vec3(3.0, 1.0, 0.0), glm::vec3(3.5, 1.0, 0.0),
+          glm::vec3(0.0, 2.0, 0.0), glm::vec3(0.7, 2.0, 0.0), glm::vec3(1.3, 2.0, 1.2), glm::vec3(2.0, 2.0, 0.0), glm::vec3(2.8, 2.0, 0.0),
+          glm::vec3(0.4, 3.0, 0.0), glm::vec3(1.0, 3.0, 0.0), glm::vec3(2.3, 3.0, 0.2), glm::vec3(3.0, 3.0, 0.0), glm::vec3(3.5, 3.0, 0.0),
+          glm::vec3(0.0, 4.0, 0.0), glm::vec3(0.7, 4.0, 0.0), glm::vec3(1.3, 4.0, 0.0), glm::vec3(2.0, 4.0, 0.0), glm::vec3(2.8, 4.0, 0.0)
+        }
+    };
+    srf.weights = { 5, 5,
+        { 1, 1, 1, 1, 1,
+          1, 1, 1, 1, 1,
+          1, 1, 1, 1, 1,
+          1, 1, 1, 1, 1,
+          1, 1, 1, 1, 1
+        }
+    };
+
+    if (nurbs::internal::SurfaceIsValid(
+        srf.degree_u, srf.degree_v,
+        srf.knots_u, srf.knots_v,
+        srf.control_points, srf.weights)) {
+      float interval_u = 0.01f, interval_v = 0.01f;
+      num_para_u = 1 / interval_u + 1;
+      num_para_v = 1 / interval_v + 1;
+      surface.resize(num_para_u * num_para_v);
+      for (size_t u_idx = 0; u_idx < num_para_u; ++u_idx) {
+        float para_u = interval_u * u_idx;
+          for (size_t v_idx = 0; v_idx < num_para_v; ++v_idx) {
+            float para_v = interval_v * v_idx;
+            glm::vec3 pt = nurbs::SurfacePoint(srf, para_u, para_v);
+            surface.at(num_para_v * u_idx + v_idx) = pt;
+          }
+      }
+
+      ChangeOutData();
+
+      nurbs::SurfaceSaveOBJ("surface.txt", srf);
+    }
+    else {
+      std::cerr << "Parameters(degree and control points) are wrong!" << std::endl;
+    }
+  }
+
+  // Load surface
+  if (ImGui::Button("Load surface"))
+  {
+    std::string file_name = "surface.txt";
+    auto srf2 = nurbs::SurfaceReadOBJ<3, float>(file_name.c_str());
+
+    if (nurbs::internal::SurfaceIsValid(
+      srf2.degree_u, srf2.degree_v,
+      srf2.knots_u, srf2.knots_v,
+      srf2.control_points, srf2.weights)) {
+      float interval_u = 0.01f, interval_v = 0.01f;
+      num_para_u = 1 / interval_u + 1;
+      num_para_v = 1 / interval_v + 1;
+      surface.resize(num_para_u * num_para_v);
+      for (size_t u_idx = 0; u_idx < num_para_u; ++u_idx) {
+        float para_u = interval_u * u_idx;
+        for (size_t v_idx = 0; v_idx < num_para_v; ++v_idx) {
+          float para_v = interval_v * v_idx;
+          glm::vec3 pt = nurbs::SurfacePoint(srf2, para_u, para_v);
+          surface.at(num_para_v * u_idx + v_idx) = pt;
+        }
+      }
+
+      srf = srf2;
+      ChangeOutData();
+    }
+    else {
+      std::cerr << "Parameters(degree and control points) are wrong!" << std::endl;
+    }
+  }
+
+  // Set draw mode
+  {
+    static int draw_mode = 2;
+    ImGui::RadioButton("Polygon", &draw_mode, 2); ImGui::SameLine();
+    ImGui::RadioButton("Wireframe", &draw_mode, 1); ImGui::SameLine();
+    ImGui::RadioButton("Point", &draw_mode, 0);
+    ChangeDrawMode(draw_mode);
+  }
 }
 
 void TestApp::TabsColumn() {
@@ -259,6 +440,23 @@ void TestApp::CanvasContext() {
       IsFullScreen() = !IsFullScreen();
     }
   }
+}
+
+nurbs::RationalSurface3f TestApp::MakeSurface(
+    unsigned int degree_u,
+    unsigned int degree_v,
+    std::vector<float> knots_u,
+    std::vector<float> knots_v,
+    nurbs::array2<glm::vec3> control_points,
+    nurbs::array2<float> weigths) {
+  nurbs::RationalSurface3f srf;
+  srf.degree_u = degree_u;
+  srf.degree_v = degree_v;
+  srf.knots_u = knots_u;
+  srf.knots_v = knots_v;
+  srf.control_points = control_points;
+  srf.weights = weigths;
+  return srf;
 }
 
 } // inline namespace opengl3

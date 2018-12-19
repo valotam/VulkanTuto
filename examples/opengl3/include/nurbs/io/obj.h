@@ -278,7 +278,7 @@ void SurfaceReadOBJ(const std::string &filename, unsigned int &deg_u, unsigned i
         }
         ssline.clear();
     }
-    file.CloseTo();
+    file.close();
 
     // Check if necessary data was available in file
     if (!parsed.cstype) {
@@ -413,7 +413,7 @@ void SurfaceSaveOBJ(const std::string &filename, unsigned int deg_u, unsigned in
         fout << " " << knot;
     }
     fout << endl << "end";
-    fout.CloseTo();
+    fout.close();
 }
 
 } // namespace internal

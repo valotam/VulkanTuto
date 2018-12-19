@@ -1,5 +1,6 @@
 #pragma once
 #include "opengl3_base.h"
+#include "nurbs/nurbs.h"
 
 namespace vktuto {
 
@@ -35,6 +36,19 @@ class TestApp : public BaseApp {
   void ConsolTab();
 
   void CanvasContext();
+
+  nurbs::RationalSurface3f MakeSurface(
+      unsigned int degree_u,
+      unsigned int degree_v,
+      std::vector<float> knots_u,
+      std::vector<float> knots_v,
+      nurbs::array2<glm::vec3> control_points,
+      nurbs::array2<float> weigths);
+
+  unsigned int num_para_u = 0, num_para_v = 0;
+  std::vector<glm::vec3> surface;
+  nurbs::RationalSurface3f srf;
+
 }; // class TestApp
 
 } // inline namespace opengl3

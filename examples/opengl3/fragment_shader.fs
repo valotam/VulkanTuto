@@ -1,5 +1,14 @@
 #version 330 core
 
+in vec4 Frag_Color;
+
+out vec4 color;
+
+void main() {
+	color = Frag_Color;
+}
+
+/*
 in vec3 pos;    // interpolated from the vertex shader values. 
 
 in vec4 start;
@@ -58,11 +67,13 @@ void main() {
 			color = colors[12];
 	}
 		
-/*
+
 	float R = 0.5 + 0.4*cos(2*3.14*pos.x);
 	float G = 0.6 + 0.3*sin(2*3.14*2*pos.y);
 	float B = 0.4 + 0.7*cos(2*3.14*3*pos.z);
     color = vec3(R, G, B);
-*/
+
 
 }
+
+*/

@@ -32,16 +32,9 @@ class TestApp : public BaseApp {
   GLuint VertexArrayID;
 
   GLuint vertexbuffer;
+  GLuint colorbuffer;
   GLuint elementbuffer;
   int num_indices;
-
-  GLuint sizebuffer;
-  GLuint positionbuffer;
-  GLuint rotatebuffer;
-  GLuint startbuffer;
-  GLuint stopbuffer;
-  GLuint indexbuffer;
-
 
   // Framebuffer stuff
   GLuint framebuffer;
@@ -52,7 +45,7 @@ class TestApp : public BaseApp {
   int textureX = resx;
   int textureY = resy;
 
-  float rotateX = 10.0, rotateY = 0.0;
+  float rotateX = 0.0f, rotateY = 0.0f;
 
   std::string readFile(const char *filename);
   void CompileShader(const char *file_path, GLuint ShaderID);

@@ -1,6 +1,19 @@
 #version 330 core
 
 layout(location = 0) in vec3 vertexPosition;
+layout(location = 1) in vec4 vertexColor;
+
+uniform mat4 MVP;
+
+out vec4 Frag_Color;
+
+void main() {
+	gl_Position = MVP * vec4(vertexPosition, 1.0);
+	Frag_Color = vertexColor;
+}
+
+/*
+layout(location = 0) in vec3 vertexPosition;
 layout(location = 1) in vec3 instanceSize;
 layout(location = 2) in vec3 instancePosition;
 layout(location = 3) in float instanceRotation;
@@ -26,7 +39,6 @@ void main() {
 	new_pos.x = x;
 	new_pos.y = y;
 
-
 	new_pos = new_pos + instancePosition;
 	gl_Position = MVP * vec4(new_pos, 1.0);
 	pos = vertexPosition;
@@ -35,3 +47,4 @@ void main() {
 	stop = instanceStop*2-1;
 	clusterIndex = instanceIndex;
 }
+*/

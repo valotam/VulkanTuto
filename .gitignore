@@ -36,3 +36,7 @@ x86/
 # Visual studio configuration
 .vs/
 *.user
+*.pdb
+
+# Program configuration file
+*.ini

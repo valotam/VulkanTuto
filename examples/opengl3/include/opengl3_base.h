@@ -65,13 +65,11 @@ class BaseApp
  protected:
   utility::ConsoleApp console;
 
-  virtual void Initialize() = 0 {}
+  virtual void Initialize() = 0 { ChangeOutData(); }
   virtual void Update()     = 0 {}
   virtual void Cleanup()    = 0 {}
 
   GLFWwindow * GetWindow() { return window_; };
-  const int GetWindowWidth() const noexcept { return window_size_.width; }
-  const int GetWindowHeight() const noexcept { return window_size_.height; }
 
   bool & ShowDemo() noexcept { return show_demo_window_; }
 
@@ -84,6 +82,34 @@ class BaseApp
   const ImFont * GetThinFont() const noexcept {
     return font_map.at(VkTutoFontFlag::Thin).im_font;
   }
+
+  const int GetCustomProg() const noexcept { return program_; }
+  const int GetVAO() const noexcept { return vao_; }
+  const int GetVBOPosition() const noexcept { return vbo_position_; }
+  const int GetVBOColor() const noexcept { return vbo_color_; }
+  const int GetIBO() const noexcept { return ibo_; }
+  void BindBuffers() const ;
+
+  std::vector<glm::vec3> & GetVertices() { return vertices; }
+  std::vector<glm::vec3> & GetColors() { return colors; }
+  std::vector<GLubyte>   & GetIndices() { return indices; }
+
+  const int GetFBO() const { return fbo_; }
+  const int GetRBODepth() const { return rbo_depth_; }
+  const int GetTexture() const { return texture_; }
+  int & GetTextrueX() { return texture_x_; }
+  int & GetTextrueY() { return texture_y_; }
+
+  float & GetCamX() { return cam_x_; }
+  float & GetCamY() { return cam_y_; }
+  float & GetCamW() { return cam_width_; }
+  float & GetCamH() { return cam_height_; }
+  float & GetRotX() { return rotate_x_; }
+  float & GetRotY() { return rotate_y_; }
+
+  bool & IsFullScreen() { return full_screen_; }
+
+  virtual void ChangeOutData();
 
  private:
   const struct GLVersion { int major, minor; } gl_version_ /*= { 3, 0 }*/;
@@ -104,7 +130,30 @@ class BaseApp
     {VkTutoFontFlag::Bold,      {VKTUTO_FONT_BOLD_PATH,       nullptr, 22.f}},
     {VkTutoFontFlag::Thin,      {VKTUTO_FONT_THIN_PATH,       nullptr, 18.f}}
   };
-  struct Window { int width, height; } window_size_;
+
+  GLuint program_;
+  GLuint vao_;
+  GLuint vbo_position_;
+  GLuint vbo_color_;
+  GLuint ibo_;
+
+  std::vector<glm::vec3> vertices, colors;
+  std::vector<GLubyte> indices;
+
+  GLuint fbo_;
+  GLuint rbo_depth_;
+  GLuint texture_;
+  int texture_x_;
+  int texture_y_;
+
+  // world coordinates of lower-left corner of the window
+  float cam_x_ = -2.0, cam_y_ = -2.0;
+  float cam_height_ = 4.0;
+  float cam_width_ = cam_height_; //* io.DisplaySize.x / float(io.DisplaySize.y)
+
+  float rotate_x_ = 0.0f, rotate_y_ = 0.0f;
+
+  bool full_screen_ = false;
 
   static void ErrorCallback(int error, const char *description);
   void InitGLFWWithErrorCallback() const noexcept(false);
@@ -130,6 +179,13 @@ class BaseApp
 
   void MainLoop();
 
+  void InitCustomGL();
+  std::string ReadShaderFile(const char *file_name);
+  void CompileShader(const char *file_path, GLuint shader_ID);
+  GLuint LoadShaders(const char *vertex_file_path, const char *fragment_file_path);
+  void DestroyCustomGL();
+
+  void CustomGLDraw();
 }; // class BaseApp
 
 } // inline namespace opengl3

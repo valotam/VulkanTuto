@@ -22,6 +22,13 @@ class TestApp : public BaseApp {
   ImGuiWindowFlags window_flags_ = 0;
   bool show_main_window_ = true;
 
+  glm::vec3 boundary[4];
+  unsigned int num_con_point_u = 5, num_con_point_v = 5;
+  unsigned int degree_u = 2, degree_v = 2;
+  unsigned int num_para_u = 0, num_para_v = 0;
+  std::vector<glm::vec3> surface_points;
+  nurbs::RationalSurface3f surface_primitive;
+
   ImGuiWindowFlags & SetupWindowFlags() const noexcept;
 
   void ShowMainWindow();
@@ -37,17 +44,13 @@ class TestApp : public BaseApp {
 
   void CanvasContext();
 
-  nurbs::RationalSurface3f MakeSurface(
+  void MakeSurface(
       unsigned int degree_u,
       unsigned int degree_v,
       std::vector<float> knots_u,
       std::vector<float> knots_v,
       nurbs::array2<glm::vec3> control_points,
       nurbs::array2<float> weigths);
-
-  unsigned int num_para_u = 0, num_para_v = 0;
-  std::vector<glm::vec3> surface;
-  nurbs::RationalSurface3f srf;
 
 }; // class TestApp
 

@@ -73,13 +73,13 @@ class BaseApp
 
   bool & ShowDemo() noexcept { return show_demo_window_; }
 
-  const ImFont * GetNormalFont() const noexcept { 
+  ImFont * GetNormalFont() const noexcept { 
     return font_map.at(VkTutoFontFlag::Normal).im_font;
   }
-  const ImFont * GetBoldFont() const noexcept {
+  ImFont * GetBoldFont() const noexcept {
     return font_map.at(VkTutoFontFlag::Bold).im_font;
   }
-  const ImFont * GetThinFont() const noexcept {
+  ImFont * GetThinFont() const noexcept {
     return font_map.at(VkTutoFontFlag::Thin).im_font;
   }
 

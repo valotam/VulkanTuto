@@ -1,4 +1,7 @@
 #include <iostream>
+#include <iomanip>
+#include <string>
+#include <sstream>
 #include <random>
 
 #include "test_app.h"
@@ -30,9 +33,9 @@ void TestApp::Cleanup() {
 void TestApp::ChangeOutData() {
   int row_size = num_para_u - 1, col_size = num_para_v - 1;
   if (!nurbs::internal::SurfaceIsValid(
-          srf.degree_u, srf.degree_v,
-          srf.knots_u, srf.knots_v,
-          srf.control_points, srf.weights) || 
+          surface_primitive.degree_u, surface_primitive.degree_v,
+          surface_primitive.knots_u, surface_primitive.knots_v,
+          surface_primitive.control_points, surface_primitive.weights) ||
       row_size <= 0 || col_size <= 0) {
     return;
   }
@@ -42,12 +45,12 @@ void TestApp::ChangeOutData() {
   std::uniform_real_distribution<float> dis(0, 1);
 
   auto & vertices = GetVertices();
-  vertices = surface;
+  vertices = surface_points;
 
   auto & colors = GetColors();
-  colors.resize(surface.size());
+  colors.resize(surface_points.size());
   for (auto & color : colors) {
-    color = glm::vec3(dis(gen), dis(gen), dis(gen));
+    color = glm::vec3(1.0, 0.6, 0.1);//glm::vec3(dis(gen), dis(gen), dis(gen));
   }
 
   auto & indices = GetIndices();
@@ -150,55 +153,63 @@ void TestApp::SplitView() {
 }
 
 void TestApp::ControlsColumn() {
-  static unsigned int counter_u = 2;
-  static unsigned int counter_v = 2;
-  static unsigned int num_con_point_u = 5;
-  static unsigned int num_con_point_v = 5;
+  // Pick 4 boundary points
+  {
+    ImGui::PushFont(GetBoldFont());
+    ImGui::Text("Pick 4 boundary points");
+    ImGui::PopFont();
+    ImGui::Columns(4, "##pick-four-boundary-points");
+    ImGui::Separator();
+    ImGui::Text("X"); ImGui::NextColumn();
+    ImGui::Text("Y"); ImGui::NextColumn();
+    ImGui::Text("Z"); ImGui::NextColumn();
+    ImGui::Text("Change"); ImGui::NextColumn();
+    ImGui::Separator();
+    static int selected = -1;
+    static float fx = 0.0f, fy = 0.0f, fz = 0.0f;
+    for (int i = 0; i < 4; i++)
+    {
+      std::stringstream idx; idx << i;
+      std::string str("##dummy-bound");
+      str.append(idx.str());
+      //if (ImGui::Selectable(str.c_str(), selected == i, ImGuiSelectableFlags_SpanAllColumns))
+      //  selected = i;
+      //bool hovered = ImGui::IsItemHovered();
+      //ImGui::SameLine();
+      ImGui::InputFloat((str + "x").c_str(), &fx, 0.0f); ImGui::NextColumn();
+      ImGui::InputFloat((str + "y").c_str(), &fy, 0.0f); ImGui::NextColumn();
+      ImGui::InputFloat((str + "z").c_str(), &fz, 0.0f); ImGui::NextColumn();
 
-  // Degree and Control points
+      /*
+      idx << std::fixed << std::setprecision(2);
+      idx.str(std::string()); idx << boundary[i].x;
+      ImGui::Text(idx.str().c_str()); ImGui::NextColumn();
+      idx.str(std::string()); idx << boundary[i].y;
+      ImGui::Text(idx.str().c_str()); ImGui::NextColumn();
+      idx.str(std::string()); idx << boundary[i].z;
+      ImGui::Text(idx.str().c_str()); ImGui::NextColumn();
+      */
+      ImGui::Text("%d", 0); ImGui::NextColumn();
+    }
+    ImGui::Columns(1);
+    ImGui::Separator();
+  }
+
+  // The number of control points and degree
   {
     ImGui::AlignTextToFramePadding();
-    ImGui::Text("Degree of direction U:");
-    ImGui::SameLine();
-
     float spacing = ImGui::GetStyle().ItemInnerSpacing.x;
-    ImGui::PushButtonRepeat(true);
-    if (ImGui::ArrowButton("##left_u", ImGuiDir_Left)) {
-      if (counter_u != 1) --counter_u;
-    }
-    ImGui::SameLine(0.0f, spacing);
-    if (ImGui::ArrowButton("##right_u", ImGuiDir_Right)) {
-      if (counter_u != 7) ++counter_u;
-    }
-    ImGui::PopButtonRepeat();
-    ImGui::SameLine();
-    ImGui::Text("%d", counter_u);
-
-    ImGui::Text("Degree of direction V:");
-    ImGui::SameLine();
-
-    ImGui::PushButtonRepeat(true);
-    if (ImGui::ArrowButton("##left_v", ImGuiDir_Left)) {
-      if (counter_v != 1) --counter_v;
-    }
-    ImGui::SameLine(0.0f, spacing);
-    if (ImGui::ArrowButton("##right_v", ImGuiDir_Right)) {
-      if (counter_v != 7) ++counter_v;
-    }
-    ImGui::PopButtonRepeat();
-    ImGui::SameLine();
-    ImGui::Text("%d", counter_v);
-
     ImGui::Text("The # of control points for U:");
     ImGui::SameLine();
 
     ImGui::PushButtonRepeat(true);
     if (ImGui::ArrowButton("##left_cp_u", ImGuiDir_Left)) {
-      if (num_con_point_u != 2) --num_con_point_u;
+      if (num_con_point_u > 2) --num_con_point_u;
+      if (degree_u >= num_con_point_u) degree_u = num_con_point_u - 1;
     }
     ImGui::SameLine(0.0f, spacing);
     if (ImGui::ArrowButton("##right_cp_u", ImGuiDir_Right)) {
-      if (num_con_point_u != 10) ++num_con_point_u;
+      if (num_con_point_u < 20) ++num_con_point_u;
     }
     ImGui::PopButtonRepeat();
     ImGui::SameLine();
@@ -209,96 +220,115 @@ void TestApp::ControlsColumn() {
 
     ImGui::PushButtonRepeat(true);
     if (ImGui::ArrowButton("##left_cp_v", ImGuiDir_Left)) {
-      if (num_con_point_v != 2) --num_con_point_v;
+      if (num_con_point_v > 2) --num_con_point_v;
+      if (degree_v >= num_con_point_v) degree_v = num_con_point_v - 1;
     }
     ImGui::SameLine(0.0f, spacing);
     if (ImGui::ArrowButton("##right_cp_v", ImGuiDir_Right)) {
-      if (num_con_point_v != 10) ++num_con_point_v;
+      if (num_con_point_v < 20) ++num_con_point_v;
     }
     ImGui::PopButtonRepeat();
     ImGui::SameLine();
     ImGui::Text("%d", num_con_point_v);
+
+    ImGui::Text("Degree of direction U:");
+    ImGui::SameLine();
+
+    ImGui::PushButtonRepeat(true);
+    if (ImGui::ArrowButton("##left_u", ImGuiDir_Left)) {
+      if (degree_u > 1) --degree_u;
+    }
+    ImGui::SameLine(0.0f, spacing);
+    if (ImGui::ArrowButton("##right_u", ImGuiDir_Right)) {
+      if (degree_u < num_con_point_u - 1) ++degree_u;
+      else degree_u = num_con_point_u - 1;
+    }
+    ImGui::PopButtonRepeat();
+    ImGui::SameLine();
+    ImGui::Text("%d", degree_u);
+
+    ImGui::Text("Degree of direction V:");
+    ImGui::SameLine();
+
+    ImGui::PushButtonRepeat(true);
+    if (ImGui::ArrowButton("##left_v", ImGuiDir_Left)) {
+      if (degree_v > 1) --degree_v;
+    }
+    ImGui::SameLine(0.0f, spacing);
+    if (ImGui::ArrowButton("##right_v", ImGuiDir_Right)) {
+      if (degree_v < num_con_point_v - 1) ++degree_v;
+      else degree_v = num_con_point_v - 1;
+    }
+    ImGui::PopButtonRepeat();
+    ImGui::SameLine();
+    ImGui::Text("%d", degree_v);
+  }
+
+  // Make knot
+  {
+
   }
 
   // Make surface
   if (ImGui::Button("Make surface"))
   {
-    srf.degree_u = 3;
-    srf.degree_v = 3;
-    srf.knots_u = { 0, 0, 0, 0, 0.5, 1, 1, 1, 1 };
-    srf.knots_v = { 0, 0, 0, 0, 0.5, 1, 1, 1, 1 };
-    srf.control_points = { 5, 5,
-        { glm::vec3(0.5, 0.0, 0.0), glm::vec3(1.0, 0.0, 0.0), glm::vec3(1.3, 0.0, 0.0), glm::vec3(2.0, 0.0, 0.0), glm::vec3(2.8, 0.0, 0.0),
-          glm::vec3(0.4, 1.0, 0.0), glm::vec3(1.0, 1.0, 0.0), glm::vec3(2.3, 1.0, 0.2), glm::vec3(3.0, 1.0, 0.0), glm::vec3(3.5, 1.0, 0.0),
-          glm::vec3(0.0, 2.0, 0.0), glm::vec3(0.7, 2.0, 0.0), glm::vec3(1.3, 2.0, 1.2), glm::vec3(2.0, 2.0, 0.0), glm::vec3(2.8, 2.0, 0.0),
-          glm::vec3(0.4, 3.0, 0.0), glm::vec3(1.0, 3.0, 0.0), glm::vec3(2.3, 3.0, 0.2), glm::vec3(3.0, 3.0, 0.0), glm::vec3(3.5, 3.0, 0.0),
-          glm::vec3(0.0, 4.0, 0.0), glm::vec3(0.7, 4.0, 0.0), glm::vec3(1.3, 4.0, 0.0), glm::vec3(2.0, 4.0, 0.0), glm::vec3(2.8, 4.0, 0.0)
-        }
-    };
-    srf.weights = { 5, 5,
-        { 1, 1, 1, 1, 1,
-          1, 1, 1, 1, 1,
-          1, 1, 1, 1, 1,
-          1, 1, 1, 1, 1,
-          1, 1, 1, 1, 1
-        }
-    };
+    //MakeSurface(counter_u, counter_v)
 
-    if (nurbs::internal::SurfaceIsValid(
-        srf.degree_u, srf.degree_v,
-        srf.knots_u, srf.knots_v,
-        srf.control_points, srf.weights)) {
-      float interval_u = 0.01f, interval_v = 0.01f;
-      num_para_u = 1 / interval_u + 1;
-      num_para_v = 1 / interval_v + 1;
-      surface.resize(num_para_u * num_para_v);
-      for (size_t u_idx = 0; u_idx < num_para_u; ++u_idx) {
-        float para_u = interval_u * u_idx;
-          for (size_t v_idx = 0; v_idx < num_para_v; ++v_idx) {
-            float para_v = interval_v * v_idx;
-            glm::vec3 pt = nurbs::SurfacePoint(srf, para_u, para_v);
-            surface.at(num_para_v * u_idx + v_idx) = pt;
-          }
-      }
+    //if (nurbs::internal::SurfaceIsValid(
+    //    srf.degree_u, srf.degree_v,
+    //    srf.knots_u, srf.knots_v,
+    //    srf.control_points, srf.weights)) {
+    //  float interval_u = 0.1f, interval_v = 0.1f;
+    //  num_para_u = 1 / interval_u + 1;
+    //  num_para_v = 1 / interval_v + 1;
+    //  surface.resize(num_para_u * num_para_v);
+    //  for (size_t u_idx = 0; u_idx < num_para_u; ++u_idx) {
+    //    float para_u = interval_u * u_idx;
+    //      for (size_t v_idx = 0; v_idx < num_para_v; ++v_idx) {
+    //        float para_v = interval_v * v_idx;
+    //        glm::vec3 pt = nurbs::SurfacePoint(srf, para_u, para_v);
+    //        surface.at(num_para_v * u_idx + v_idx) = pt;
+    //      }
+    //  }
 
-      ChangeOutData();
+    //  ChangeOutData();
 
-      nurbs::SurfaceSaveOBJ("surface.txt", srf);
-    }
-    else {
-      std::cerr << "Parameters(degree and control points) are wrong!" << std::endl;
-    }
+    //  nurbs::SurfaceSaveOBJ("surface.txt", srf);
+    //}
+    //else {
+    //  std::cerr << "Parameters(degree and control points) are wrong!" << std::endl;
+    //}
   }
 
   // Load surface
   if (ImGui::Button("Load surface"))
   {
-    std::string file_name = "surface.txt";
-    auto srf2 = nurbs::SurfaceReadOBJ<3, float>(file_name.c_str());
+    //std::string file_name = "surface.txt";
+    //auto srf2 = nurbs::SurfaceReadOBJ<3, float>(file_name.c_str());
 
-    if (nurbs::internal::SurfaceIsValid(
-      srf2.degree_u, srf2.degree_v,
-      srf2.knots_u, srf2.knots_v,
-      srf2.control_points, srf2.weights)) {
-      float interval_u = 0.01f, interval_v = 0.01f;
-      num_para_u = 1 / interval_u + 1;
-      num_para_v = 1 / interval_v + 1;
-      surface.resize(num_para_u * num_para_v);
-      for (size_t u_idx = 0; u_idx < num_para_u; ++u_idx) {
-        float para_u = interval_u * u_idx;
-        for (size_t v_idx = 0; v_idx < num_para_v; ++v_idx) {
-          float para_v = interval_v * v_idx;
-          glm::vec3 pt = nurbs::SurfacePoint(srf2, para_u, para_v);
-          surface.at(num_para_v * u_idx + v_idx) = pt;
-        }
-      }
+    //if (nurbs::internal::SurfaceIsValid(
+    //  srf2.degree_u, srf2.degree_v,
+    //  srf2.knots_u, srf2.knots_v,
+    //  srf2.control_points, srf2.weights)) {
+    //  float interval_u = 0.01f, interval_v = 0.01f;
+    //  num_para_u = 1 / interval_u + 1;
+    //  num_para_v = 1 / interval_v + 1;
+    //  surface.resize(num_para_u * num_para_v);
+    //  for (size_t u_idx = 0; u_idx < num_para_u; ++u_idx) {
+    //    float para_u = interval_u * u_idx;
+    //    for (size_t v_idx = 0; v_idx < num_para_v; ++v_idx) {
+    //      float para_v = interval_v * v_idx;
+    //      glm::vec3 pt = nurbs::SurfacePoint(srf2, para_u, para_v);
+    //      surface.at(num_para_v * u_idx + v_idx) = pt;
+    //    }
+    //  }
 
-      srf = srf2;
-      ChangeOutData();
-    }
-    else {
-      std::cerr << "Parameters(degree and control points) are wrong!" << std::endl;
-    }
+    //  srf = srf2;
+    //  ChangeOutData();
+    //}
+    //else {
+    //  std::cerr << "Parameters(degree and control points) are wrong!" << std::endl;
+    //}
   }
 
   // Set draw mode
@@ -398,7 +428,7 @@ void TestApp::CanvasContext() {
     if (clicked_right_while_hovered) {
       clicked_right_while_hovered = io.MouseDown[1];
       if (io.MouseDown[1]) {
-        float degreesPerPixel = 0.05f;
+        float degreesPerPixel = 0.01f;
         GetRotX() += degreesPerPixel * mouse_delta.y;
         GetRotY() += degreesPerPixel * mouse_delta.x;
       }
@@ -442,21 +472,42 @@ void TestApp::CanvasContext() {
   }
 }
 
-nurbs::RationalSurface3f TestApp::MakeSurface(
+void TestApp::MakeSurface(
     unsigned int degree_u,
     unsigned int degree_v,
     std::vector<float> knots_u,
     std::vector<float> knots_v,
     nurbs::array2<glm::vec3> control_points,
     nurbs::array2<float> weigths) {
-  nurbs::RationalSurface3f srf;
-  srf.degree_u = degree_u;
-  srf.degree_v = degree_v;
-  srf.knots_u = knots_u;
-  srf.knots_v = knots_v;
-  srf.control_points = control_points;
-  srf.weights = weigths;
-  return srf;
+  surface_primitive.degree_u = degree_u;
+  surface_primitive.degree_v = degree_v;
+  surface_primitive.knots_u = knots_u;
+  surface_primitive.knots_v = knots_v;
+  surface_primitive.control_points = control_points;
+  surface_primitive.weights = weigths;
+
+  /*
+  srf.degree_u = 3;
+  srf.degree_v = 3;
+  srf.knots_u = { 0, 0, 0, 0, 0.5, 1, 1, 1, 1 };
+  srf.knots_v = { 0, 0, 0, 0, 0.5, 1, 1, 1, 1 };
+  srf.control_points = { 5, 5,
+      { glm::vec3(0.5, 0.0, 0.0), glm::vec3(1.0, 0.0, 0.0), glm::vec3(1.3, 0.0, 0.0), glm::vec3(2.0, 0.0, 0.0), glm::vec3(2.8, 0.0, 0.0),
+        glm::vec3(0.4, 1.0, 0.0), glm::vec3(1.0, 1.0, 0.0), glm::vec3(2.3, 1.0, 0.2), glm::vec3(3.0, 1.0, 0.0), glm::vec3(3.5, 1.0, 0.0),
+        glm::vec3(0.0, 2.0, 0.0), glm::vec3(0.7, 2.0, 0.0), glm::vec3(1.3, 2.0, 1.2), glm::vec3(2.0, 2.0, 0.0), glm::vec3(2.8, 2.0, 0.0),
+        glm::vec3(0.4, 3.0, 0.0), glm::vec3(1.0, 3.0, 0.0), glm::vec3(2.3, 3.0, 0.2), glm::vec3(3.0, 3.0, 0.0), glm::vec3(3.5, 3.0, 0.0),
+        glm::vec3(0.0, 4.0, 0.0), glm::vec3(0.7, 4.0, 0.0), glm::vec3(1.3, 4.0, 0.0), glm::vec3(2.0, 4.0, 0.0), glm::vec3(2.8, 4.0, 0.0)
+      }
+  };
+  srf.weights = { 5, 5,
+      { 1, 1, 1, 1, 1,
+        1, 1, 1, 1, 1,
+        1, 1, 1, 1, 1,
+        1, 1, 1, 1, 1,
+        1, 1, 1, 1, 1
+      }
+  };
+  */
 }
 
 } // inline namespace opengl3

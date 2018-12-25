@@ -65,7 +65,7 @@ class BaseApp
  protected:
   utility::ConsoleApp console;
 
-  virtual void Initialize() = 0 { ChangeOutData(); }
+  virtual void Initialize() = 0 { /*ChangeOutData(); ChangeOutData2();*/ }
   virtual void Update()     = 0 {}
   virtual void Cleanup()    = 0 {}
 
@@ -83,16 +83,20 @@ class BaseApp
     return font_map.at(VkTutoFontFlag::Thin).im_font;
   }
 
-  const int GetCustomProg() const noexcept { return program_; }
-  const int GetVAO() const noexcept { return vao_; }
-  const int GetVBOPosition() const noexcept { return vbo_position_; }
-  const int GetVBOColor() const noexcept { return vbo_color_; }
-  const int GetIBO() const noexcept { return ibo_; }
-  void BindBuffers() const ;
+  //const int GetCustomProg() const noexcept { return program_; }
+  //const int GetVAO() const noexcept { return vao_; }
+  //const int GetVBOPosition() const noexcept { return vbo_position_; }
+  //const int GetVBOColor() const noexcept { return vbo_color_; }
+  //const int GetIBO() const noexcept { return ibo_; }
+  void BindBuffers() const;
+  void BindBuffers2() const;
 
-  std::vector<glm::vec3> & GetVertices() { return vertices; }
-  std::vector<glm::vec3> & GetColors() { return colors; }
-  std::vector<GLuint>   & GetIndices() { return indices; }
+  std::vector<glm::vec3> & GetVertices() { return vertices_; }
+  std::vector<glm::vec3> & GetColors() { return colors_; }
+  std::vector<GLuint>   & GetIndices() { return indices_; }
+  std::vector<glm::vec3> & GetVertices2() { return vertices2_; }
+  std::vector<glm::vec3> & GetColors2() { return colors2_; }
+  std::vector<GLuint>   & GetIndices2() { return indices2_; }
 
   const int GetFBO() const { return fbo_; }
   const int GetRBODepth() const { return rbo_depth_; }
@@ -110,6 +114,7 @@ class BaseApp
   bool & IsFullScreen() { return full_screen_; }
 
   virtual void ChangeOutData();
+  virtual void ChangeOutData2();
 
   void ChangeDrawMode(int mode);
 
@@ -137,13 +142,13 @@ class BaseApp
                           Fill = GL_FILL } draw_mode = GLDrawMode::Fill;
 
   GLuint program_;
-  GLuint vao_;
-  GLuint vbo_position_;
-  GLuint vbo_color_;
-  GLuint ibo_;
+  GLuint vao_, vao2_;
+  GLuint vbo_position_, vbo_position2_;
+  GLuint vbo_color_, vbo_color2_;
+  GLuint ibo_, ibo2_;
 
-  std::vector<glm::vec3> vertices, colors;
-  std::vector<GLuint> indices;
+  std::vector<glm::vec3> vertices_, colors_, vertices2_, colors2_;
+  std::vector<GLuint> indices_, indices2_;
 
   GLuint fbo_;
   GLuint rbo_depth_;

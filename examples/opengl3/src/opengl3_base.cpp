@@ -328,6 +328,13 @@ void BaseApp::InitCustomGL() {
 
   BindBuffers();
 
+  glGenVertexArrays(1, &vao2_);
+  glGenBuffers(1, &vbo_position2_);
+  glGenBuffers(1, &vbo_color2_);
+  glGenBuffers(1, &ibo2_);
+
+  BindBuffers2();
+
   ////////////////////////////////////////////////////////////////////////
   // Create and bind framebuffer, attach a depth buffer to it           //
   // Create the texture to render to, and attach it to the framebuffer  //
@@ -362,12 +369,25 @@ void BaseApp::BindBuffers() const {
   glBindVertexArray(vao_);
 
   glBindBuffer(GL_ARRAY_BUFFER, vbo_position_);
-  glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3), vertices.data(), GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, vertices_.size() * sizeof(glm::vec3), vertices_.data(), GL_STATIC_DRAW);
   glBindBuffer(GL_ARRAY_BUFFER, vbo_color_);
-  glBufferData(GL_ARRAY_BUFFER, colors.size() * sizeof(glm::vec3), colors.data(), GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, colors_.size() * sizeof(glm::vec3), colors_.data(), GL_STATIC_DRAW);
 
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo_);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), indices.data(), GL_STATIC_DRAW);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices_.size() * sizeof(GLuint), indices_.data(), GL_STATIC_DRAW);
+  glBindVertexArray(0);
+}
+
+void BaseApp::BindBuffers2() const {
+  glBindVertexArray(vao2_);
+
+  glBindBuffer(GL_ARRAY_BUFFER, vbo_position2_);
+  glBufferData(GL_ARRAY_BUFFER, vertices2_.size() * sizeof(glm::vec3), vertices2_.data(), GL_STATIC_DRAW);
+  glBindBuffer(GL_ARRAY_BUFFER, vbo_color2_);
+  glBufferData(GL_ARRAY_BUFFER, colors2_.size() * sizeof(glm::vec3), colors2_.data(), GL_STATIC_DRAW);
+
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo2_);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices2_.size() * sizeof(GLuint), indices2_.data(), GL_STATIC_DRAW);
   glBindVertexArray(0);
 }
 
@@ -458,6 +478,11 @@ void BaseApp::DestroyCustomGL() {
   glDeleteBuffers(1, &vbo_color_);
   glDeleteBuffers(1, &ibo_);
 
+  glDeleteVertexArrays(1, &vao2_);
+  glDeleteBuffers(1, &vbo_position2_);
+  glDeleteBuffers(1, &vbo_color2_);
+  glDeleteBuffers(1, &ibo2_);
+
   glDeleteFramebuffers(1, &fbo_);
   glDeleteRenderbuffers(1, &rbo_depth_);
   glDeleteTextures(1, &texture_);
@@ -538,16 +563,32 @@ void BaseApp::CustomGLDraw() {
 
   glVertexAttribDivisor(0, 0);
   glVertexAttribDivisor(1, 0);
-  glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, NULL);
+  glDrawElements(GL_TRIANGLES, indices_.size(), GL_UNSIGNED_INT, NULL);
   glDisableVertexAttribArray(0);
   glDisableVertexAttribArray(1);
   glBindVertexArray(0);
+
+  glBindVertexArray(vao2_);
+  glEnableVertexAttribArray(0);
+  glBindBuffer(GL_ARRAY_BUFFER, vbo_position2_);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+  glEnableVertexAttribArray(1);
+  glBindBuffer(GL_ARRAY_BUFFER, vbo_color2_);
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+
+  glVertexAttribDivisor(0, 0);
+  glVertexAttribDivisor(1, 0);
+  glDrawElements(GL_LINES, indices2_.size(), GL_UNSIGNED_INT, NULL);
+  glDisableVertexAttribArray(0);
+  glDisableVertexAttribArray(1);
+  glBindVertexArray(0);
+
   glUseProgram(0);
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void BaseApp::ChangeOutData() {
-  vertices = {
+  vertices_ = {
     glm::vec3(-1.0f, -1.0f,  1.0f),
     glm::vec3( 1.0f, -1.0f,  1.0f),
     glm::vec3(-1.0f,  1.0f,  1.0f),
@@ -558,7 +599,7 @@ void BaseApp::ChangeOutData() {
     glm::vec3( 1.0f,  1.0f, -1.0f)
   };
 
-  colors = {
+  colors_ = {
     glm::vec3(0.0f,  0.0f,  0.0f),
     glm::vec3(1.0f,  0.0f,  0.0f),
     glm::vec3(1.0f,  1.0f,  0.0f),
@@ -569,11 +610,31 @@ void BaseApp::ChangeOutData() {
     glm::vec3(1.0f,  0.0f,  1.0f)
   };
 
-  indices = {
+  indices_ = {
       0, 1, 2, 3, 7, 1, 5, 4, 7, 6, 2, 4, 0, 1
   };
 
   BindBuffers();
+}
+
+void BaseApp::ChangeOutData2() {
+  vertices2_ = {
+    glm::vec3(-1.0f, -1.0f,  1.0f),
+    glm::vec3(1.0f, -1.0f,  1.0f),
+    glm::vec3(-1.0f,  1.0f,  1.0f),
+  };
+
+  colors2_ = {
+    glm::vec3(1.0f,  1.0f,  1.0f),
+    glm::vec3(1.0f,  1.0f,  1.0f),
+    glm::vec3(1.0f,  1.0f,  1.0f),
+  };
+
+  indices2_ = {
+      0, 1, 0, 2
+  };
+
+  BindBuffers2();
 }
 
 void BaseApp::ChangeDrawMode(int mode) {

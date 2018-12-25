@@ -19,7 +19,7 @@ TestApp::~TestApp() {
 }
 
 void TestApp::Initialize() {
-  ChangeOutData();
+  //ChangeOutData();
   window_flags_ = SetupWindowFlags();
 }
 
@@ -82,7 +82,7 @@ ImGuiWindowFlags & TestApp::SetupWindowFlags() const noexcept
   window_flags |= ImGuiWindowFlags_NoMove;
   window_flags |= ImGuiWindowFlags_NoResize;
   window_flags |= ImGuiWindowFlags_NoCollapse;
-  window_flags |= ImGuiWindowFlags_NoNav;
+  //window_flags |= ImGuiWindowFlags_NoNav;
   //window_flags |= ImGuiWindowFlags_NoBackground;
   window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus;
   return window_flags;
@@ -153,156 +153,263 @@ void TestApp::SplitView() {
 }
 
 void TestApp::ControlsColumn() {
+  static bool is_changed = false;
   // Pick 4 boundary points
   {
     ImGui::PushFont(GetBoldFont());
-    ImGui::Text("Pick 4 boundary points");
+    ImGui::Text("Set 4 boundary points");
     ImGui::PopFont();
     ImGui::Columns(4, "##pick-four-boundary-points");
     ImGui::Separator();
     ImGui::Text("X"); ImGui::NextColumn();
     ImGui::Text("Y"); ImGui::NextColumn();
     ImGui::Text("Z"); ImGui::NextColumn();
-    ImGui::Text("Change"); ImGui::NextColumn();
+    ImGui::Text(ICON_FA_LOCK "/" ICON_FA_LOCK_OPEN); ImGui::NextColumn();
     ImGui::Separator();
     static int selected = -1;
     static float fx = 0.0f, fy = 0.0f, fz = 0.0f;
-    for (int i = 0; i < 4; i++)
-    {
+    static bool button_clicked[4] = { false, false, false, false };
+    for (int i = 0; i < 4; i++) {
       std::stringstream idx; idx << i;
-      std::string str("##dummy-bound");
-      str.append(idx.str());
-      //if (ImGui::Selectable(str.c_str(), selected == i, ImGuiSelectableFlags_SpanAllColumns))
-      //  selected = i;
-      //bool hovered = ImGui::IsItemHovered();
-      //ImGui::SameLine();
-      ImGui::InputFloat((str + "x").c_str(), &fx, 0.0f); ImGui::NextColumn();
-      ImGui::InputFloat((str + "y").c_str(), &fy, 0.0f); ImGui::NextColumn();
-      ImGui::InputFloat((str + "z").c_str(), &fz, 0.0f); ImGui::NextColumn();
-
-      /*
-      idx << std::fixed << std::setprecision(2);
-      idx.str(std::string()); idx << boundary[i].x;
-      ImGui::Text(idx.str().c_str()); ImGui::NextColumn();
-      idx.str(std::string()); idx << boundary[i].y;
-      ImGui::Text(idx.str().c_str()); ImGui::NextColumn();
-      idx.str(std::string()); idx << boundary[i].z;
-      ImGui::Text(idx.str().c_str()); ImGui::NextColumn();
-      */
-      ImGui::Text("%d", 0); ImGui::NextColumn();
+      std::string selectable_name("##dummy-bound");
+      std::string confirm_name(ICON_FA_LOCK_OPEN "##");
+      std::string change_name(ICON_FA_LOCK "##");
+      selectable_name.append(idx.str());
+      confirm_name.append(idx.str());
+      change_name.append(idx.str());
+      if (button_clicked[i]) {
+        ImGui::InputFloat((selectable_name + "x").c_str(), &boundary[i].x, 0.0f); ImGui::NextColumn();
+        ImGui::InputFloat((selectable_name + "y").c_str(), &boundary[i].y, 0.0f); ImGui::NextColumn();
+        ImGui::InputFloat((selectable_name + "z").c_str(), &boundary[i].z, 0.0f); ImGui::NextColumn();
+        if (ImGui::Button(confirm_name.c_str())) {
+          button_clicked[i] = false;
+          is_changed = true;
+        }
+      }
+      else {
+        idx << std::fixed << std::setprecision(2);
+        idx.str(std::string()); idx << boundary[i].x;
+        ImGui::Text(idx.str().c_str()); ImGui::NextColumn();
+        idx.str(std::string()); idx << boundary[i].y;
+        ImGui::Text(idx.str().c_str()); ImGui::NextColumn();
+        idx.str(std::string()); idx << boundary[i].z;
+        ImGui::Text(idx.str().c_str()); ImGui::NextColumn();
+        if (ImGui::Button(change_name.c_str())) button_clicked[i] = true;
+      }
+      ImGui::NextColumn();
     }
     ImGui::Columns(1);
     ImGui::Separator();
   }
 
-  // The number of control points and degree
+  // The number of control points
   {
-    ImGui::AlignTextToFramePadding();
-    float spacing = ImGui::GetStyle().ItemInnerSpacing.x;
-    ImGui::Text("The # of control points for U:");
-    ImGui::SameLine();
-
-    ImGui::PushButtonRepeat(true);
-    if (ImGui::ArrowButton("##left_cp_u", ImGuiDir_Left)) {
-      if (num_con_point_u > 2) --num_con_point_u;
-      if (degree_u >= num_con_point_u) degree_u = num_con_point_u - 1;
-    }
-    ImGui::SameLine(0.0f, spacing);
-    if (ImGui::ArrowButton("##right_cp_u", ImGuiDir_Right)) {
-      if (num_con_point_u < 20) ++num_con_point_u;
-    }
-    ImGui::PopButtonRepeat();
-    ImGui::SameLine();
-    ImGui::Text("%d", num_con_point_u);
-
-    ImGui::Text("The # of control points for V:");
-    ImGui::SameLine();
-
-    ImGui::PushButtonRepeat(true);
-    if (ImGui::ArrowButton("##left_cp_v", ImGuiDir_Left)) {
-      if (num_con_point_v > 2) --num_con_point_v;
-      if (degree_v >= num_con_point_v) degree_v = num_con_point_v - 1;
-    }
-    ImGui::SameLine(0.0f, spacing);
-    if (ImGui::ArrowButton("##right_cp_v", ImGuiDir_Right)) {
-      if (num_con_point_v < 20) ++num_con_point_v;
-    }
-    ImGui::PopButtonRepeat();
-    ImGui::SameLine();
-    ImGui::Text("%d", num_con_point_v);
-
-    ImGui::Text("Degree of direction U:");
-    ImGui::SameLine();
-
-    ImGui::PushButtonRepeat(true);
-    if (ImGui::ArrowButton("##left_u", ImGuiDir_Left)) {
-      if (degree_u > 1) --degree_u;
-    }
-    ImGui::SameLine(0.0f, spacing);
-    if (ImGui::ArrowButton("##right_u", ImGuiDir_Right)) {
-      if (degree_u < num_con_point_u - 1) ++degree_u;
-      else degree_u = num_con_point_u - 1;
-    }
-    ImGui::PopButtonRepeat();
-    ImGui::SameLine();
-    ImGui::Text("%d", degree_u);
-
-    ImGui::Text("Degree of direction V:");
-    ImGui::SameLine();
-
-    ImGui::PushButtonRepeat(true);
-    if (ImGui::ArrowButton("##left_v", ImGuiDir_Left)) {
-      if (degree_v > 1) --degree_v;
-    }
-    ImGui::SameLine(0.0f, spacing);
-    if (ImGui::ArrowButton("##right_v", ImGuiDir_Right)) {
-      if (degree_v < num_con_point_v - 1) ++degree_v;
-      else degree_v = num_con_point_v - 1;
-    }
-    ImGui::PopButtonRepeat();
-    ImGui::SameLine();
-    ImGui::Text("%d", degree_v);
+    ImGui::PushFont(GetBoldFont());
+    ImGui::Text("The number of C.P.");
+    ImGui::PopFont(); ImGui::SameLine();
+    ImGui::PushItemWidth(ImGui::GetContentRegionAvailWidth() * 0.3f);
+    ImGui::DragInt("##cp_u", &num_con_point_u, 0.1, 2, 20, "U: %d"); ImGui::SameLine();
+    ImGui::DragInt("##cp_v", &num_con_point_v, 0.1, 2, 20, "V: %d");
+    ImGui::PopItemWidth();
   }
 
-  // Make knot
+  // Make control points
   {
+    if (num_con_point_u != control_points.rows() ||
+      num_con_point_v != control_points.cols()) {
+      control_points.resize(num_con_point_u, num_con_point_v);
+      is_changed = true;
+    }
+    if (is_changed) {
+      for (size_t v_idx = 0; v_idx < control_points.cols(); v_idx++) {
+        float vv = static_cast<float>(v_idx) / (control_points.cols() - 1);
+        for (size_t u_idx = 0; u_idx < control_points.rows(); u_idx++) {
+          float uu = static_cast<float>(u_idx) / (control_points.rows() - 1);
+          control_points(u_idx, v_idx) =
+            boundary[0] * (1 - uu)  * (1 - vv) +
+            boundary[1] * (1 - uu)  * vv +
+            boundary[2] * uu        * (1 - vv) +
+            boundary[3] * uu        * vv;
+        }
+      }
 
+      is_changed = false;
+    }
+  }
+
+  // Customize control points
+  {
+    //bool track = false;
+    //static int track_u = 0, track_v = 0;
+    ImGui::BeginGroup();
+    ImGui::PushFont(GetBoldFont());
+    ImGui::Text("Customize control points");
+    ImGui::PopFont();
+    //ImGui::Text("Choose a C.P. where"); ImGui::SameLine();
+    //ImGui::PushItemWidth(ImGui::GetContentRegionAvailWidth() * 0.3f);
+    //track |= ImGui::DragInt("##line_u", &track_u, 0.25f, 0, control_points.rows() - 1, "U = %d"); ImGui::SameLine();
+    //track |= ImGui::DragInt("##line_v", &track_v, 0.25f, 0, control_points.cols() - 1, "V = %d");
+    //ImGui::PopItemWidth();
+    ImGui::BeginChild("##cp-list", ImVec2(0, 100), true);
+    for (size_t u_idx = 0; u_idx < control_points.rows(); u_idx++) {
+      for (size_t v_idx = 0; v_idx < control_points.cols(); v_idx++) {
+        std::stringstream idx;
+        idx << u_idx << v_idx;
+        std::string dummy_name("##dummy");
+        dummy_name.append(idx.str());
+        //if (u_idx == track_u && v_idx == track_v) {
+          ImGui::Text("C.P.(%d, %d)", u_idx, v_idx);
+          ImGui::SameLine();
+          ImGui::InputFloat3(dummy_name.c_str(), control_points(u_idx, v_idx).data.data);
+          //if (track) ImGui::SetScrollHereY();
+        //} else {
+        //  ImGui::Text("C.P.(%d, %d)", u_idx, v_idx);
+        //  ImGui::SameLine();
+        //  ImGui::InputFloat3(dummy_name.c_str(), control_points(u_idx, v_idx).data.data, 3, ImGuiInputTextFlags_ReadOnly);
+        //}
+      }
+    }
+    ImGui::EndChild();
+    ImGui::EndGroup();
+  }
+
+  // Degrees
+  {
+    ImVec4 color(ImGui::GetStyleColorVec4(ImGuiCol_Text));
+    if (degree_u >= num_con_point_u || degree_v >= num_con_point_v)
+      color = ImGui::GetStyleColorVec4(ImGuiCol_PlotLinesHovered);
+    ImGui::PushFont(GetBoldFont());
+    ImGui::TextColored(color, "Degree");
+    ImGui::PopFont(); ImGui::SameLine();
+    ImGui::PushItemWidth(ImGui::GetContentRegionAvailWidth() * 0.25f);
+    ImGui::DragInt("##degree_u", &degree_u, 0.1, 1, num_con_point_u - 1, "U: %d"); ImGui::SameLine();
+    ImGui::DragInt("##degree_v", &degree_v, 0.1, 1, num_con_point_v - 1, "V: %d");
+    ImGui::PopItemWidth();
+  }
+
+  // Make knots
+  {
+    auto & knots_u = surface_primitive.knots_u;
+    knots_u.resize(control_points.rows() + degree_u + 1);
+    auto & knots_v = surface_primitive.knots_v;
+    knots_v.resize(control_points.cols() + degree_v + 1);
+    for (size_t u_idx = 0; u_idx < knots_u.size(); u_idx++) {
+      if (u_idx < degree_u + 1) {
+        knots_u.at(u_idx) = 0;
+      } else if (u_idx < control_points.rows()) {
+        knots_u.at(u_idx) = static_cast<float>(u_idx - degree_u) /
+                            (control_points.rows() - degree_u);
+      } else {
+        knots_u.at(u_idx) = 1;
+      }
+    }
+    for (size_t v_idx = 0; v_idx < knots_v.size(); v_idx++) {
+      if (v_idx < degree_v + 1) {
+        knots_v.at(v_idx) = 0;
+      }
+      else if (v_idx < control_points.cols()) {
+        knots_v.at(v_idx) = static_cast<float>(v_idx - degree_v) /
+                            (control_points.cols() - degree_v);
+      }
+      else {
+        knots_v.at(v_idx) = 1;
+      }
+    }
+  }
+
+  // Customize knots
+  {
+    //bool track_line_u = false, track_line_v = false;
+    //static int track_uknot = 0, track_vknot = 0;
+    ImGui::BeginGroup();
+    ImGui::PushFont(GetBoldFont());
+    ImGui::Text("Customize UV knots");
+    ImGui::PopFont();
+    //ImGui::Text("Choose a knot where"); ImGui::SameLine();
+    //ImGui::PushItemWidth(ImGui::GetContentRegionAvailWidth() * 0.3f);
+    //track_line_u |= ImGui::DragInt("##line_uknots", &track_uknot, 0.25f, 0, surface_primitive.knots_u.size() - 1, "U = %d"); ImGui::SameLine();
+    //track_line_v |= ImGui::DragInt("##line_vknots", &track_vknot, 0.25f, 0, surface_primitive.knots_v.size() - 1, "V = %d");
+    //ImGui::PopItemWidth();
+    ImGui::Columns(2);
+    ImGui::BeginChild("##uknots-list", ImVec2(0, 100), true);
+    for (size_t u_idx = 0; u_idx < surface_primitive.knots_u.size(); u_idx++) {
+      std::stringstream idx;
+      idx << u_idx;
+      std::string dummy_name("##dummy_uknots");
+      dummy_name.append(idx.str());
+      //if (u_idx == track_uknot) {
+        ImGui::Text("U Knot(%d)", u_idx);
+        ImGui::SameLine();
+        ImGui::InputFloat(dummy_name.c_str(), &surface_primitive.knots_u.at(u_idx));
+      //  //if (track_line_u) ImGui::SetScrollHereY();
+      //}
+      //else {
+      //  ImGui::Text("U Knot(%d)", u_idx);
+      //  ImGui::SameLine();
+      //  ImGui::InputFloat(dummy_name.c_str(), &surface_primitive.knots_u.at(u_idx));
+      //}
+    }
+    ImGui::EndChild(); ImGui::NextColumn();
+    ImGui::BeginChild("##vknots-list", ImVec2(0, 100), true);
+    for (size_t v_idx = 0; v_idx < surface_primitive.knots_v.size(); v_idx++) {
+      std::stringstream idx;
+      idx << v_idx;
+      std::string dummy_name("##dummy_vknots");
+      dummy_name.append(idx.str());
+      //if (v_idx == track_vknot) {
+        ImGui::Text("V Knot(%d)", v_idx);
+        ImGui::SameLine();
+        ImGui::InputFloat(dummy_name.c_str(), &surface_primitive.knots_v.at(v_idx));
+      //  if (track_line_v) ImGui::SetScrollHereY();
+      //}
+      //else {
+      //  ImGui::Text("V Knot(%d)", v_idx);
+      //  ImGui::SameLine();
+      //  ImGui::InputFloat(dummy_name.c_str(), &surface_primitive.knots_v.at(v_idx));
+      //}
+    }
+    ImGui::EndChild(); ImGui::NextColumn();
+    ImGui::Columns(1);
+    ImGui::EndGroup();
   }
 
   // Make surface
   if (ImGui::Button("Make surface"))
   {
-    //MakeSurface(counter_u, counter_v)
+    nurbs::array2<float> wei = { control_points.rows(), control_points.cols(), { 1, } };
+    MakeSurface(degree_u, degree_v,
+      surface_primitive.knots_u, surface_primitive.knots_v,
+      control_points, wei);
 
-    //if (nurbs::internal::SurfaceIsValid(
-    //    srf.degree_u, srf.degree_v,
-    //    srf.knots_u, srf.knots_v,
-    //    srf.control_points, srf.weights)) {
-    //  float interval_u = 0.1f, interval_v = 0.1f;
-    //  num_para_u = 1 / interval_u + 1;
-    //  num_para_v = 1 / interval_v + 1;
-    //  surface.resize(num_para_u * num_para_v);
-    //  for (size_t u_idx = 0; u_idx < num_para_u; ++u_idx) {
-    //    float para_u = interval_u * u_idx;
-    //      for (size_t v_idx = 0; v_idx < num_para_v; ++v_idx) {
-    //        float para_v = interval_v * v_idx;
-    //        glm::vec3 pt = nurbs::SurfacePoint(srf, para_u, para_v);
-    //        surface.at(num_para_v * u_idx + v_idx) = pt;
-    //      }
-    //  }
+    if (nurbs::internal::SurfaceIsValid(
+        surface_primitive.degree_u, surface_primitive.degree_v,
+        surface_primitive.knots_u, surface_primitive.knots_v,
+        surface_primitive.control_points, surface_primitive.weights)) {
+      float interval_u = 0.1f, interval_v = 0.1f;
+      num_para_u = 1 / interval_u + 1;
+      num_para_v = 1 / interval_v + 1;
+      surface_points.resize(num_para_u * num_para_v);
+      for (size_t u_idx = 0; u_idx < num_para_u; ++u_idx) {
+        float para_u = interval_u * u_idx;
+          for (size_t v_idx = 0; v_idx < num_para_v; ++v_idx) {
+            float para_v = interval_v * v_idx;
+            glm::vec3 pt = nurbs::SurfacePoint(surface_primitive, para_u, para_v);
+            surface_points.at(num_para_v * u_idx + v_idx) = pt;
+          }
+      }
 
-    //  ChangeOutData();
+      ChangeOutData();
 
     //  nurbs::SurfaceSaveOBJ("surface.txt", srf);
-    //}
-    //else {
-    //  std::cerr << "Parameters(degree and control points) are wrong!" << std::endl;
-    //}
+    }
+    else {
+      std::cerr << "Parameters(degree and control points) are wrong!" << std::endl;
+    }
   }
 
   // Load surface
-  if (ImGui::Button("Load surface"))
-  {
+  //if (ImGui::Button("Load surface"))
+  //{
     //std::string file_name = "surface.txt";
     //auto srf2 = nurbs::SurfaceReadOBJ<3, float>(file_name.c_str());
 
@@ -329,7 +436,7 @@ void TestApp::ControlsColumn() {
     //else {
     //  std::cerr << "Parameters(degree and control points) are wrong!" << std::endl;
     //}
-  }
+  //}
 
   // Set draw mode
   {
@@ -475,10 +582,10 @@ void TestApp::CanvasContext() {
 void TestApp::MakeSurface(
     unsigned int degree_u,
     unsigned int degree_v,
-    std::vector<float> knots_u,
-    std::vector<float> knots_v,
-    nurbs::array2<glm::vec3> control_points,
-    nurbs::array2<float> weigths) {
+    std::vector<float> &knots_u,
+    std::vector<float> &knots_v,
+    nurbs::array2<glm::vec3> &control_points,
+    nurbs::array2<float> &weigths) {
   surface_primitive.degree_u = degree_u;
   surface_primitive.degree_v = degree_v;
   surface_primitive.knots_u = knots_u;

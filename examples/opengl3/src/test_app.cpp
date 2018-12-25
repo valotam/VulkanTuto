@@ -71,20 +71,62 @@ void TestApp::ChangeOutData() {
 }
 
 void TestApp::ChangeOutData2() {
-  GetVertices2() = curve_points;
+  auto &positions = GetVertices2();
+  positions.resize(curve_points.size() + curve_tangents.size()
+                    + curve_normals.size() + curve_binormals.size());
+  for (size_t idx = 0; idx < positions.size(); idx++) {
+    if (idx < curve_points.size()) {
+      positions.at(idx) = curve_points.at(idx);
+    } else if (idx < curve_points.size() + curve_tangents.size()) {
+      size_t ii = idx - curve_points.size();
+      positions.at(idx) = curve_points.at(ii) + curve_tangents.at(ii);
+    } else if (idx < curve_points.size() + curve_tangents.size() + curve_normals.size()) {
+      size_t ii = idx - curve_points.size() - curve_tangents.size();
+      positions.at(idx) = curve_points.at(ii) + curve_normals.at(ii);
+    } else {
+      size_t ii = idx - curve_points.size() - curve_tangents.size() - curve_normals.size();
+      positions.at(idx) = curve_points.at(ii) + curve_binormals.at(ii);
+    }
+  }
 
   auto &colors = GetColors2();
-  colors.resize(curve_points.size());
-  for (auto &color : colors) {
-    color = glm::vec3(0.5, 0.95, 0.45);
+  colors.resize(positions.size());
+  for (size_t idx = 0; idx < colors.size(); idx++) {
+    if (idx < curve_points.size()) {
+      colors.at(idx) = glm::vec3(0.5, 0.95, 0.45);
+    } else if (idx < curve_points.size() + curve_tangents.size()) {
+      colors.at(idx) = glm::vec3(1.0, 0.5, 0.5);
+    } else if (idx < curve_points.size() + curve_tangents.size() + curve_normals.size()) {
+      colors.at(idx) = glm::vec3(1.0, 1.0, 0.0);
+    } else {
+      colors.at(idx) = glm::vec3(0.18, 0.77, 0.71);
+    }
   }
 
   auto &indices = GetIndices2();
-  indices.resize(2 * (curve_points.size()));
-  std::vector<GLuint> line(2);
-  for (unsigned int idx = 0; idx < curve_points.size() - 1; idx++) {
-    line = { idx, idx + 1 };
-    std::copy(line.begin(), line.end(), indices.begin() + 2 * idx);
+  indices.clear();
+  size_t total_size = curve_points.size() - 1;
+  if (show_tangent)   total_size += curve_tangents.size();
+  if (show_normal)    total_size += curve_normals.size();
+  if (show_binormal)  total_size += curve_binormals.size();
+  indices.reserve(2 * total_size);
+  for (unsigned int idx = 0; idx < curve_points.size(); idx++) {
+    unsigned int ii;
+    if (idx < curve_points.size() - 1) {
+      indices.push_back(idx); indices.push_back(idx + 1);
+    }
+    if (show_tangent) {
+      ii = idx + curve_points.size();
+      indices.push_back(idx); indices.push_back(ii);
+    }
+    if (show_normal) {
+      ii = idx + curve_points.size() + curve_tangents.size();
+      indices.push_back(idx); indices.push_back(ii);
+    }
+    if (show_binormal) {
+      ii = idx + curve_points.size() + curve_tangents.size() + curve_normals.size();
+      indices.push_back(idx); indices.push_back(ii);
+    }
   }
 
   BindBuffers2();
@@ -508,10 +550,8 @@ void TestApp::ControlsColumn() {
       ImGui::TextColored(color, "Degree");
       ImGui::PopFont(); ImGui::SameLine();
       ImGui::PushItemWidth(ImGui::GetContentRegionAvailWidth() * 0.4f);
-      if (ImGui::DragInt("##curve-degree", &curve_degree, 0.1, 1, cp.size() - 1, "%d")) {
-        degree = curve_degree;
-        degree_changed |= true;
-      }
+      degree_changed |= ImGui::DragInt("##curve-degree", &curve_degree, 0.1, 1, cp.size() - 1, "%d");
+      if (degree_changed) degree = curve_degree;
       ImGui::PopItemWidth();
     }
 
@@ -551,6 +591,9 @@ void TestApp::ControlsColumn() {
       ImGui::TreePop();
     }
 
+    ImGui::Checkbox("Tangent", &show_tangent); ImGui::SameLine();
+    ImGui::Checkbox("Normal", &show_normal); ImGui::SameLine();
+    ImGui::Checkbox("Binormal", &show_binormal);
     // Make curve
     if (ImGui::Button("Make curve")) {
       auto &weight = curve_primitive.weights;
@@ -560,12 +603,29 @@ void TestApp::ControlsColumn() {
         static float interval = 0.01f;
         num_curve_para = 1 / interval + 1;
         curve_points.resize(num_curve_para);
-        for (size_t u_idx = 0; u_idx < num_curve_para; u_idx++)
-        {
+        curve_tangents.resize(num_curve_para);
+        curve_normals.resize(num_curve_para);
+        curve_binormals.resize(num_curve_para);
+
+        for (size_t u_idx = 0; u_idx < curve_points.size(); u_idx++) {
           float para = interval * u_idx;
           glm::vec3 pt = nurbs::CurvePoint(curve_primitive, para);
           curve_points.at(u_idx) = pt;
+
+          glm::vec3 c1 = nurbs::CurveDerivatives(curve_primitive, 1, para).at(1);
+          curve_tangents.at(u_idx) = glm::normalize(c1);
+
+          glm::vec3 c2 = nurbs::CurveDerivatives(curve_primitive, 2, para).at(2);
+          glm::vec3 binormal = glm::cross(c1, c2);
+          curve_binormals.at(u_idx) = glm::normalize(binormal);
+
+          float nomi = glm::length(binormal);
+          float denomi = glm::pow(glm::length(c1), 3);
+          float curvature = nomi / denomi;
+          glm::vec3 normal = curvature * glm::normalize(glm::cross(binormal, c1));
+          curve_normals.at(u_idx) = normal;
         }
+
         ChangeOutData2();
       }
     }

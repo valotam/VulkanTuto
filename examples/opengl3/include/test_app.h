@@ -33,9 +33,14 @@ class TestApp : public BaseApp {
   nurbs::RationalSurface3f surface_primitive;
   nurbs::array2<glm::vec3> surface_control_points;
 
+  bool show_tangent = false, show_normal = false, show_binormal = false;
   unsigned int num_curve_para = 0;
   std::vector<glm::vec3> curve_points;
   nurbs::RationalCurve3f curve_primitive;
+  std::vector<glm::vec3> curve_tangents;
+  std::vector<glm::vec3> curve_curvatures;
+  std::vector<glm::vec3> curve_binormals;
+  std::vector<glm::vec3> curve_normals;
 
   ImGuiWindowFlags & SetupWindowFlags() const noexcept;
 

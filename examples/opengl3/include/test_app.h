@@ -33,6 +33,7 @@ class TestApp : public BaseApp {
   nurbs::RationalSurface3f surface_primitive;
   nurbs::array2<glm::vec3> surface_control_points;
 
+  unsigned int num_curve_para = 0;
   std::vector<glm::vec3> curve_points;
   nurbs::RationalCurve3f curve_primitive;
 

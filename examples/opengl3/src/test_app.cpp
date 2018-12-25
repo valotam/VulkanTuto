@@ -71,6 +71,23 @@ void TestApp::ChangeOutData() {
 }
 
 void TestApp::ChangeOutData2() {
+  GetVertices2() = curve_points;
+
+  auto &colors = GetColors2();
+  colors.resize(curve_points.size());
+  for (auto &color : colors) {
+    color = glm::vec3(0.5, 0.95, 0.45);
+  }
+
+  auto &indices = GetIndices2();
+  indices.resize(2 * (curve_points.size()));
+  std::vector<GLuint> line(2);
+  for (unsigned int idx = 0; idx < curve_points.size() - 1; idx++) {
+    line = { idx, idx + 1 };
+    std::copy(line.begin(), line.end(), indices.begin() + 2 * idx);
+  }
+
+  BindBuffers2();
 }
 
 ImGuiWindowFlags & TestApp::SetupWindowFlags() const noexcept
@@ -156,12 +173,9 @@ void TestApp::SplitView() {
 
 void TestApp::ControlsColumn() {
   if (ImGui::CollapsingHeader("Surface")) {
-    static bool is_changed = false;
+    static bool cp_changed = true, degree_changed = true;
     // Pick 4 boundary points
     if (ImGui::TreeNode("Set 4 corner points")) {
-      //ImGui::PushFont(GetBoldFont());
-      //ImGui::Text("Set 4 boundary points");
-      //ImGui::PopFont();
       ImGui::Columns(4, "##pick-four-boundary-points");
       ImGui::Separator();
       ImGui::Text("X"); ImGui::NextColumn();
@@ -186,7 +200,7 @@ void TestApp::ControlsColumn() {
           ImGui::InputFloat((selectable_name + "z").c_str(), &boundary[i].z, 0.0f); ImGui::NextColumn();
           if (ImGui::Button(confirm_name.c_str())) {
             button_clicked[i] = false;
-            is_changed = true;
+            cp_changed = true;
           }
         }
         else {
@@ -213,19 +227,15 @@ void TestApp::ControlsColumn() {
       ImGui::Text("The number of C.P.");
       ImGui::PopFont(); ImGui::SameLine();
       ImGui::PushItemWidth(ImGui::GetContentRegionAvailWidth() * 0.3f);
-      ImGui::DragInt("##cp_u", &num_surface_con_point_u, 0.1, 2, 20, "U: %d"); ImGui::SameLine();
-      ImGui::DragInt("##cp_v", &num_surface_con_point_v, 0.1, 2, 20, "V: %d");
+      cp_changed |= ImGui::DragInt("##cp_u", &num_surface_con_point_u, 0.1, 2, 20, "U: %d"); ImGui::SameLine();
+      cp_changed |= ImGui::DragInt("##cp_v", &num_surface_con_point_v, 0.1, 2, 20, "V: %d");
       ImGui::PopItemWidth();
     }
 
     // Make control points
     {
-      if (num_surface_con_point_u != surface_control_points.rows() ||
-        num_surface_con_point_v != surface_control_points.cols()) {
+      if (cp_changed) {
         surface_control_points.resize(num_surface_con_point_u, num_surface_con_point_v);
-        is_changed = true;
-      }
-      if (is_changed) {
         for (size_t v_idx = 0; v_idx < surface_control_points.cols(); v_idx++) {
           float vv = static_cast<float>(v_idx) / (surface_control_points.cols() - 1);
           for (size_t u_idx = 0; u_idx < surface_control_points.rows(); u_idx++) {
@@ -237,24 +247,12 @@ void TestApp::ControlsColumn() {
               boundary[3] * uu        * vv;
           }
         }
-
-        is_changed = false;
       }
     }
 
     // Customize control points
     if (ImGui::TreeNode("Customize control points")) {
-      //bool track = false;
-      //static int track_u = 0, track_v = 0;
       ImGui::BeginGroup();
-      //ImGui::PushFont(GetBoldFont());
-      //ImGui::Text("Customize control points");
-      //ImGui::PopFont();
-      //ImGui::Text("Choose a C.P. where"); ImGui::SameLine();
-      //ImGui::PushItemWidth(ImGui::GetContentRegionAvailWidth() * 0.3f);
-      //track |= ImGui::DragInt("##line_u", &track_u, 0.25f, 0, control_points.rows() - 1, "U = %d"); ImGui::SameLine();
-      //track |= ImGui::DragInt("##line_v", &track_v, 0.25f, 0, control_points.cols() - 1, "V = %d");
-      //ImGui::PopItemWidth();
       ImGui::BeginChild("##cp-list", ImVec2(0, 100), true);
       for (size_t u_idx = 0; u_idx < surface_control_points.rows(); u_idx++) {
         for (size_t v_idx = 0; v_idx < surface_control_points.cols(); v_idx++) {
@@ -262,16 +260,9 @@ void TestApp::ControlsColumn() {
           idx << u_idx << v_idx;
           std::string dummy_name("##dummy");
           dummy_name.append(idx.str());
-          //if (u_idx == track_u && v_idx == track_v) {
           ImGui::Text("C.P.(%d, %d)", u_idx, v_idx);
           ImGui::SameLine();
-          ImGui::InputFloat3(dummy_name.c_str(), surface_control_points(u_idx, v_idx).data.data);
-          //if (track) ImGui::SetScrollHereY();
-        //} else {
-        //  ImGui::Text("C.P.(%d, %d)", u_idx, v_idx);
-        //  ImGui::SameLine();
-        //  ImGui::InputFloat3(dummy_name.c_str(), control_points(u_idx, v_idx).data.data, 3, ImGuiInputTextFlags_ReadOnly);
-        //}
+          cp_changed |= ImGui::InputFloat3(dummy_name.c_str(), surface_control_points(u_idx, v_idx).data.data);
         }
       }
       ImGui::EndChild();
@@ -289,13 +280,13 @@ void TestApp::ControlsColumn() {
       ImGui::TextColored(color, "Degree");
       ImGui::PopFont(); ImGui::SameLine();
       ImGui::PushItemWidth(ImGui::GetContentRegionAvailWidth() * 0.25f);
-      ImGui::DragInt("##degree_u", &degree_u, 0.1, 1, num_surface_con_point_u - 1, "U: %d"); ImGui::SameLine();
-      ImGui::DragInt("##degree_v", &degree_v, 0.1, 1, num_surface_con_point_v - 1, "V: %d");
+      degree_changed |= ImGui::DragInt("##degree_u", &degree_u, 0.1, 1, num_surface_con_point_u - 1, "U: %d"); ImGui::SameLine();
+      degree_changed |= ImGui::DragInt("##degree_v", &degree_v, 0.1, 1, num_surface_con_point_v - 1, "V: %d");
       ImGui::PopItemWidth();
     }
 
     // Make knots
-    {
+    if (cp_changed || degree_changed) {
       auto & knots_u = surface_primitive.knots_u;
       knots_u.resize(surface_control_points.rows() + degree_u + 1);
       auto & knots_v = surface_primitive.knots_v;
@@ -324,6 +315,8 @@ void TestApp::ControlsColumn() {
           knots_v.at(v_idx) = 1;
         }
       }
+
+      cp_changed = degree_changed = false;
     }
 
     // Customize knots
@@ -469,7 +462,123 @@ void TestApp::ControlsColumn() {
   }
 
   if (ImGui::CollapsingHeader("Curve")) {
+    auto &cp = curve_primitive.control_points;
+    auto &knots = curve_primitive.knots;
+    auto &degree = curve_primitive.degree;
+    static bool cp_changed = true, degree_changed = true;
 
+    // The number of control points
+    {
+      static int num_curve_con_points = 4;
+      ImGui::PushFont(GetBoldFont());
+      ImGui::Text("The number of C.P.");
+      ImGui::PopFont(); ImGui::SameLine();
+      ImGui::PushItemWidth(ImGui::GetContentRegionAvailWidth() * 0.4f);
+      cp_changed != ImGui::DragInt("##curve-num-C.P.", &num_curve_con_points, 0.1, 2, 20, "%d");
+      ImGui::PopItemWidth();
+      if (cp_changed) cp.resize(num_curve_con_points);
+    }
+
+    // Customize control points
+    if (ImGui::TreeNode("Customize control points##curve")) {
+      ImGui::BeginGroup();
+      ImGui::BeginChild("##curve-cp-list", ImVec2(0, 150), true);
+      for (size_t u_idx = 0; u_idx < cp.size(); u_idx++) {
+        std::stringstream idx;
+        idx << u_idx;
+        std::string dummy_name("##dummy-curve-cp");
+        dummy_name.append(idx.str());
+        ImGui::Text("C.P.(%d)", u_idx);
+        ImGui::SameLine();
+        cp_changed |= ImGui::InputFloat3(dummy_name.c_str(), cp.at(u_idx).data.data);
+      }
+      ImGui::EndChild();
+      ImGui::EndGroup();
+
+      ImGui::TreePop();
+    }
+
+    // Degrees
+    {
+      static int curve_degree = 2;
+      ImVec4 color(ImGui::GetStyleColorVec4(ImGuiCol_Text));
+      if (degree >= cp.size())
+        color = ImGui::GetStyleColorVec4(ImGuiCol_PlotLinesHovered);
+      ImGui::PushFont(GetBoldFont());
+      ImGui::TextColored(color, "Degree");
+      ImGui::PopFont(); ImGui::SameLine();
+      ImGui::PushItemWidth(ImGui::GetContentRegionAvailWidth() * 0.4f);
+      if (ImGui::DragInt("##curve-degree", &curve_degree, 0.1, 1, cp.size() - 1, "%d")) {
+        degree = curve_degree;
+        degree_changed |= true;
+      }
+      ImGui::PopItemWidth();
+    }
+
+    // Make knots
+    if (cp_changed || degree_changed) {
+      knots.resize(cp.size() + degree + 1);
+      for (size_t u_idx = 0; u_idx < knots.size(); u_idx++) {
+        if (u_idx < degree + 1) {
+          knots.at(u_idx) = 0;
+        }
+        else if (u_idx < cp.size()) {
+          // TODO: prameterization and generation non-uniform vector
+          knots.at(u_idx) = static_cast<float>(u_idx - degree) / (cp.size() - degree);
+        }
+        else {
+          knots.at(u_idx) = 1;
+        }
+      }
+      cp_changed = degree_changed = false;
+    }
+
+    // Customize knots
+    if (ImGui::TreeNode("Customize knots")) {
+      ImGui::BeginGroup();
+      ImGui::BeginChild("##curve-knots-list", ImVec2(0, 150), true);
+      for (size_t u_idx = 0; u_idx < knots.size(); u_idx++) {
+        std::stringstream idx;
+        idx << u_idx;
+        std::string knot_name("##curve-knot");
+        knot_name.append(idx.str());
+        ImGui::Text("Knot(%d)", u_idx); ImGui::SameLine();
+        ImGui::InputFloat(knot_name.c_str(), &knots.at(u_idx));
+      }
+      ImGui::EndChild();
+      ImGui::EndGroup();
+
+      ImGui::TreePop();
+    }
+
+    // Make curve
+    if (ImGui::Button("Make curve")) {
+      auto &weight = curve_primitive.weights;
+      weight.resize(curve_primitive.control_points.size(), 1);
+
+      if (nurbs::CurveIsValid(curve_primitive)) {
+        static float interval = 0.01f;
+        num_curve_para = 1 / interval + 1;
+        curve_points.resize(num_curve_para);
+        for (size_t u_idx = 0; u_idx < num_curve_para; u_idx++)
+        {
+          float para = interval * u_idx;
+          glm::vec3 pt = nurbs::CurvePoint(curve_primitive, para);
+          curve_points.at(u_idx) = pt;
+        }
+        ChangeOutData2();
+      }
+    }
+    ImGui::SameLine();
+
+    // Clear curve
+    if (ImGui::Button("Clear curve")) {
+      GetVertices2()  = std::vector<glm::vec3>();
+      GetColors2()    = std::vector<glm::vec3>();
+      GetIndices2()   = std::vector<GLuint>();
+
+      BindBuffers2();
+    }
   }
 
 }

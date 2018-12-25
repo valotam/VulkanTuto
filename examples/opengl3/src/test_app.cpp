@@ -3,6 +3,7 @@
 #include <string>
 #include <sstream>
 #include <random>
+#include <functional>
 
 #include "test_app.h"
 
@@ -507,7 +508,7 @@ void TestApp::ControlsColumn() {
     auto &cp = curve_primitive.control_points;
     auto &knots = curve_primitive.knots;
     auto &degree = curve_primitive.degree;
-    static bool cp_changed = true, degree_changed = true;
+    static bool curve_cp_changed = true, curve_degree_changed = true;
 
     // The number of control points
     {
@@ -516,9 +517,9 @@ void TestApp::ControlsColumn() {
       ImGui::Text("The number of C.P.");
       ImGui::PopFont(); ImGui::SameLine();
       ImGui::PushItemWidth(ImGui::GetContentRegionAvailWidth() * 0.4f);
-      cp_changed != ImGui::DragInt("##curve-num-C.P.", &num_curve_con_points, 0.1, 2, 20, "%d");
+      curve_cp_changed |= ImGui::DragInt("##curve-num-C.P.", &num_curve_con_points, 0.1, 2, 20, "%d");
       ImGui::PopItemWidth();
-      if (cp_changed) cp.resize(num_curve_con_points);
+      if (curve_cp_changed) cp.resize(num_curve_con_points);
     }
 
     // Customize control points
@@ -532,12 +533,55 @@ void TestApp::ControlsColumn() {
         dummy_name.append(idx.str());
         ImGui::Text("C.P.(%d)", u_idx);
         ImGui::SameLine();
-        cp_changed |= ImGui::InputFloat3(dummy_name.c_str(), cp.at(u_idx).data.data);
+        curve_cp_changed |= ImGui::InputFloat3(dummy_name.c_str(), cp.at(u_idx).data.data);
       }
       ImGui::EndChild();
       ImGui::EndGroup();
 
       ImGui::TreePop();
+    }
+
+    // Parameterization
+    static std::vector<float> parameters;
+    {
+      static const char* parameterization_methods[] = { "Equally spaced", "Chord length", "Centripetal" };
+      static int para_current = 1;
+      curve_cp_changed |= ImGui::Combo("Parameterization method",
+          &para_current, parameterization_methods, IM_ARRAYSIZE(parameterization_methods));
+      static const std::function<
+          float(glm::vec3 &delta,
+                float total_length,
+                int parameters)> parameterizations[] = {
+        [](glm::vec3 &delta, float total_length, int parameters) -> float {
+          return 1.0f / (parameters - 1);
+        },
+        [](glm::vec3 &delta, float total_length, int parameters) -> float {
+          float norm = glm::length(delta);
+          return norm / total_length;
+        },
+        [](glm::vec3 &delta, float total_length, int parameters) -> float {
+          float norm = glm::length(delta);
+          return glm::sqrt(norm) / total_length;
+        }
+      };
+      if (curve_cp_changed) {
+        parameters.resize(cp.size());
+
+        float total_chord_length = 0;
+        glm::vec3 delta;
+        for (int idx = 1; idx < cp.size(); idx++) {
+          delta = cp.at(idx) - cp.at(idx - 1);
+          total_chord_length += glm::length(delta);
+        }
+
+        parameters.at(0) = 0.0f;
+        for (int idx = 1; idx < cp.size() - 1; idx++) {
+          delta = cp.at(idx) - cp.at(idx - 1);
+          parameters.at(idx) = parameters.at(idx - 1) +
+            parameterizations[para_current](delta, total_chord_length, cp.size());
+        }
+        parameters.at(cp.size() - 1) = 1.0f;
+      }
     }
 
     // Degrees
@@ -550,27 +594,44 @@ void TestApp::ControlsColumn() {
       ImGui::TextColored(color, "Degree");
       ImGui::PopFont(); ImGui::SameLine();
       ImGui::PushItemWidth(ImGui::GetContentRegionAvailWidth() * 0.4f);
-      degree_changed |= ImGui::DragInt("##curve-degree", &curve_degree, 0.1, 1, cp.size() - 1, "%d");
-      if (degree_changed) degree = curve_degree;
+      curve_degree_changed |= ImGui::DragInt("##curve-degree", &curve_degree, 0.1, 1, cp.size() - 1, "%d");
+      if (curve_degree_changed) degree = curve_degree;
       ImGui::PopItemWidth();
     }
 
     // Make knots
-    if (cp_changed || degree_changed) {
-      knots.resize(cp.size() + degree + 1);
-      for (size_t u_idx = 0; u_idx < knots.size(); u_idx++) {
-        if (u_idx < degree + 1) {
-          knots.at(u_idx) = 0;
+    {
+      static const char* knot_methods[] = { "Equally spaced", "Averaging" };
+      static int knot_current = 1;
+      curve_degree_changed |= ImGui::Combo("Knot vetor method",
+          &knot_current, knot_methods, IM_ARRAYSIZE(knot_methods));
+      static const std::function<
+          float(std::vector<float> &parameters,
+                int degree,
+                int idx)> knot_vector_methods[] = {
+        [](std::vector<float> &parameters, int degree, int idx) -> float {
+          return static_cast<float>(idx - degree) / (parameters.size() - degree);
+        },
+        [](std::vector<float> &parameters, int degree, int idx) -> float {
+          float knot_value = 0;
+          for (int ii = idx - degree; ii <= idx - 1; ii++) {
+              knot_value += parameters.at(ii);
+          }
+          knot_value /= degree;
+          return knot_value;
         }
-        else if (u_idx < cp.size()) {
-          // TODO: prameterization and generation non-uniform vector
-          knots.at(u_idx) = static_cast<float>(u_idx - degree) / (cp.size() - degree);
+      };
+      if (curve_cp_changed || curve_degree_changed) {
+        knots.resize(cp.size() + degree + 1);
+        for (size_t u_idx = degree + 1; u_idx < cp.size(); u_idx++) {
+          knots.at(u_idx) = knot_vector_methods[knot_current](parameters, degree, u_idx);
         }
-        else {
-          knots.at(u_idx) = 1;
+        for (size_t u_idx = 0; u_idx <= degree; u_idx++) {
+          knots.at(u_idx) = 0.0f;
+          knots.at(knots.size() - 1 - u_idx) = 1.0f;
         }
+        curve_cp_changed = curve_degree_changed = false;
       }
-      cp_changed = degree_changed = false;
     }
 
     // Customize knots
@@ -590,7 +651,8 @@ void TestApp::ControlsColumn() {
 
       ImGui::TreePop();
     }
-
+    
+    ImGui::Separator();
     ImGui::Checkbox("Tangent", &show_tangent); ImGui::SameLine();
     ImGui::Checkbox("Normal", &show_normal); ImGui::SameLine();
     ImGui::Checkbox("Binormal", &show_binormal);

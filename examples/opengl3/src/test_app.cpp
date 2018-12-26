@@ -296,7 +296,7 @@ void TestApp::ControlsColumn() {
     // Customize control points
     if (ImGui::TreeNode("Customize control points")) {
       ImGui::BeginGroup();
-      ImGui::BeginChild("##cp-list", ImVec2(0, 100), true);
+      ImGui::BeginChild("##cp-list", ImVec2(0, 200), true);
       for (size_t u_idx = 0; u_idx < surface_control_points.rows(); u_idx++) {
         for (size_t v_idx = 0; v_idx < surface_control_points.cols(); v_idx++) {
           std::stringstream idx;
@@ -376,7 +376,7 @@ void TestApp::ControlsColumn() {
       //track_line_v |= ImGui::DragInt("##line_vknots", &track_vknot, 0.25f, 0, surface_primitive.knots_v.size() - 1, "V = %d");
       //ImGui::PopItemWidth();
       ImGui::Columns(2);
-      ImGui::BeginChild("##uknots-list", ImVec2(0, 100), true);
+      ImGui::BeginChild("##uknots-list", ImVec2(0, 150), true);
       for (size_t u_idx = 0; u_idx < surface_primitive.knots_u.size(); u_idx++) {
         std::stringstream idx;
         idx << u_idx;
@@ -395,7 +395,7 @@ void TestApp::ControlsColumn() {
         //}
       }
       ImGui::EndChild(); ImGui::NextColumn();
-      ImGui::BeginChild("##vknots-list", ImVec2(0, 100), true);
+      ImGui::BeginChild("##vknots-list", ImVec2(0, 150), true);
       for (size_t v_idx = 0; v_idx < surface_primitive.knots_v.size(); v_idx++) {
         std::stringstream idx;
         idx << v_idx;
@@ -432,7 +432,7 @@ void TestApp::ControlsColumn() {
         surface_primitive.degree_u, surface_primitive.degree_v,
         surface_primitive.knots_u, surface_primitive.knots_v,
         surface_primitive.control_points, surface_primitive.weights)) {
-        float interval_u = 0.1f, interval_v = 0.1f;
+        float interval_u = 0.01f, interval_v = 0.01f;
         num_para_u = 1 / interval_u + 1;
         num_para_v = 1 / interval_v + 1;
         surface_points.resize(num_para_u * num_para_v);

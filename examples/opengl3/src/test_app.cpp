@@ -83,7 +83,7 @@ void TestApp::ChangeOutData2() {
       positions.at(idx) = curve_points.at(ii) + curve_tangents.at(ii);
     } else if (idx < curve_points.size() + curve_tangents.size() + curve_normals.size()) {
       size_t ii = idx - curve_points.size() - curve_tangents.size();
-      positions.at(idx) = curve_points.at(ii) + curve_normals.at(ii);
+      positions.at(idx) = curve_points.at(ii) - curve_normals.at(ii);
     } else {
       size_t ii = idx - curve_points.size() - curve_tangents.size() - curve_normals.size();
       positions.at(idx) = curve_points.at(ii) + curve_binormals.at(ii);
